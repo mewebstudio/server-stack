@@ -1,0 +1,277 @@
+version: '3.8'
+
+services:
+  nginx-proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginx-proxy-manager-app
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - nginx-proxy-manager-data:/data
+      - nginx-proxy-manager-letsencrypt:/etc/letsencrypt
+    networks:
+      - base
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer-app
+    restart: always
+    ports:
+      - "9443:9443"
+      - "8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+    networks:
+      - base
+
+  jenkins:
+    build: ./jenkins
+    container_name: jenkins-app
+    restart: on-failure
+    ports:
+      - '8080:8080'
+      - '50000:50000'
+    environment:
+      - JENKINS_OPTS="--prefix=/"
+      - DOCKER_TLS_CERTDIR=/certs
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - jenkins-data:/var/jenkins_home
+      - jenkins-certs:/certs/client
+    networks:
+      - base
+
+  postgres:
+    image: postgres:16.3-bullseye
+    container_name: postgres-app
+    restart: always
+    environment:
+      POSTGRES_DB: server
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      PGDATA: /var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - base
+
+  pgadmin:
+    image: elestio/pgadmin:latest
+    container_name: pgadmin-app
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: mail@example.com
+      PGADMIN_DEFAULT_PASSWORD: secret
+      PGADMIN_LISTEN_PORT: 8080
+    ports:
+      - '8081:8080'
+    volumes:
+      - pgadmin-data:/pgadmin4/servers.json
+    depends_on:
+      - postgres
+    networks:
+      - base
+
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb-app
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: server
+      MYSQL_USER: root
+      MYSQL_PASSWORD: secret
+    ports:
+      - '3306:3306'
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    networks:
+      - base
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin-app
+    restart: always
+    environment:
+      PMA_HOST: mariadb
+      PMA_PORT: 3306
+      #PMA_USER: root
+      #PMA_PASSWORD: secret
+    ports:
+      - '8082:80'
+    depends_on:
+      - mariadb
+    networks:
+      - base
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer-app
+    restart: always
+    tty: true
+    ports:
+      - '8083:8080'
+    depends_on:
+      - mariadb
+    networks:
+      - base
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb-app
+    restart: always
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongodb-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: secret
+      MONGODB_AUTH_DATABASE: admin
+      MONGO_INITDB_DATABASE: server
+    networks:
+      - base
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express-app
+    restart: always
+    ports:
+      - "8084:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: true
+      ME_CONFIG_MONGODB_AUTH_DATABASE: admin
+      ME_CONFIG_MONGODB_AUTH_USERNAME: root
+      ME_CONFIG_MONGODB_AUTH_PASSWORD: secret
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: secret
+    depends_on:
+      - mongodb
+    networks:
+      - base
+
+  redis:
+    image: redis:7.2.4-alpine
+    container_name: redis-app
+    restart: always
+    command: redis-server --save 20 1 --loglevel warning --requirepass "secret"
+    volumes:
+      - redis-data:/data
+    ports:
+      - '6379:6379'
+    networks:
+      - base
+
+  redis-commander:
+    image: rediscommander/redis-commander:redis-commander-210
+    restart: always
+    container_name: redis-commander-app
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_USERNAME: default
+      REDIS_PASSWORD: secret
+      HTTP_USER: admin
+      HTTP_PASSWORD: secret
+    ports:
+      - '8085:8081'
+    depends_on:
+      - redis
+    networks:
+      - base
+
+  rabbitmq:
+    image: rabbitmq:3.12.7-management-alpine
+    container_name: rabbitmq-app
+    restart: always
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: secret
+    ports:
+      - '5672:5672'
+      - '8086:15672'
+    networks:
+      - base
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    container_name: elasticsearch-app
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - "ELASTIC_PASSWORD=secret"
+      - http.port=9200
+      - http.cors.enabled=true
+      - http.cors.allow-origin=*
+      - http.cors.allow-headers=X-Requested-With,X-Auth-Token,Content-Type,Content-Length,Authorization
+      - http.cors.allow-credentials=true
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - '9200:9200'
+      - '9300:9300'
+    ulimits:
+      memlock:
+          soft: -1
+          hard: -1
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - base
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.16.3
+    container_name: kibana-app
+    restart: always
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - '8087:5601'
+    volumes:
+      - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
+    depends_on:
+      - elasticsearch
+    networks:
+      - base
+
+volumes:
+  nginx-proxy-manager-data:
+    driver: local
+  nginx-proxy-manager-letsencrypt:
+    driver: local
+  portainer-data:
+    driver: local
+  jenkins-data:
+    driver: local
+  jenkins-certs:
+    driver: local
+  postgres-data:
+    driver: local
+  pgadmin-data:
+    driver: local
+  mongodb-data:
+    driver: local
+  mariadb-data:
+    driver: local
+  redis-data:
+    driver: local
+  rabbitmq-data:
+    driver: local
+  elasticsearch-data:
+    driver: local
+
+networks:
+  base:
+    driver: overlay
+    attachable: true
