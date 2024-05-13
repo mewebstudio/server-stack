@@ -29,7 +29,7 @@ services:
       - base
 
   jenkins:
-    build: ./jenkins
+    image: mewebstudio/jenkins-with-docker:latest
     container_name: jenkins-app
     restart: on-failure
     ports:
