@@ -26,3 +26,9 @@
 ```bash
 docker-compose up --build -d
 ````
+
+
+### Docker Stack Deploy
+```bash
+docker stack deploy --compose-file docker-stack.yml server-stack
+```

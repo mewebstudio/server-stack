@@ -3,7 +3,6 @@ version: '3.8'
 services:
   nginx-proxy-manager:
     image: 'jc21/nginx-proxy-manager:latest'
-    container_name: nginx-proxy-manager-app
     restart: unless-stopped
     ports:
       - '80:80'
@@ -17,7 +16,6 @@ services:
 
   portainer:
     image: portainer/portainer-ce:latest
-    container_name: portainer-app
     restart: always
     ports:
       - "9443:9443"
@@ -30,7 +28,6 @@ services:
 
   jenkins:
     image: mewebstudio/jenkins-with-docker:latest
-    container_name: jenkins-app
     restart: on-failure
     ports:
       - '8080:8080'
@@ -47,7 +44,6 @@ services:
 
   postgres:
     image: postgres:16.3-bullseye
-    container_name: postgres-app
     restart: always
     environment:
       POSTGRES_DB: server
@@ -63,7 +59,6 @@ services:
 
   pgadmin:
     image: elestio/pgadmin:latest
-    container_name: pgadmin-app
     restart: always
     environment:
       PGADMIN_DEFAULT_EMAIL: mail@example.com
@@ -80,7 +75,6 @@ services:
 
   mariadb:
     image: mariadb:latest
-    container_name: mariadb-app
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: secret
@@ -96,7 +90,6 @@ services:
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
-    container_name: phpmyadmin-app
     restart: always
     environment:
       PMA_HOST: mariadb
@@ -112,7 +105,6 @@ services:
 
   adminer:
     image: adminer:latest
-    container_name: adminer-app
     restart: always
     tty: true
     ports:
@@ -124,7 +116,6 @@ services:
 
   mongodb:
     image: mongo:latest
-    container_name: mongodb-app
     restart: always
     ports:
       - '27017:27017'
@@ -140,7 +131,6 @@ services:
 
   mongo-express:
     image: mongo-express:latest
-    container_name: mongo-express-app
     restart: always
     ports:
       - "8084:8081"
@@ -160,7 +150,6 @@ services:
 
   redis:
     image: redis:7.2.4-alpine
-    container_name: redis-app
     restart: always
     command: redis-server --save 20 1 --loglevel warning --requirepass "secret"
     volumes:
@@ -172,7 +161,6 @@ services:
 
   redis-commander:
     image: rediscommander/redis-commander:redis-commander-210
-    container_name: redis-commander-app
     restart: always
     environment:
       REDIS_HOST: redis
@@ -190,7 +178,6 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.12.7-management-alpine
-    container_name: rabbitmq-app
     restart: always
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
@@ -205,7 +192,6 @@ services:
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
-    container_name: elasticsearch-app
     restart: always
     environment:
       - discovery.type=single-node
@@ -232,7 +218,6 @@ services:
 
   kibana:
     image: docker.elastic.co/kibana/kibana:7.16.3
-    container_name: kibana-app
     restart: always
     environment:
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200
